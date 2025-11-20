@@ -1,3 +1,4 @@
+// backend/models/Pet.js
 import mongoose from 'mongoose';
 
 const petSchema = new mongoose.Schema({
@@ -9,40 +10,40 @@ const petSchema = new mongoose.Schema({
   species: {
     type: String,
     required: true,
-    enum: ['Dog', 'Cat', 'Bird', 'Fish', 'Rabbit', 'Other']
+    enum: ['Dog', 'Cat', 'Bird', 'Rabbit', 'Other']
   },
   breed: {
     type: String,
+    required: true,
     trim: true
   },
   age: {
-    type: Number,
-    min: 0
+    type: String,
+    required: true
   },
-  weight: {
-    type: Number,
-    min: 0
-  },
-  color: String,
   gender: {
     type: String,
-    enum: ['Male', 'Female', 'Unknown']
+    required: true,
+    enum: ['Male', 'Female']
   },
-  imageUrl: String,
-  notes: String,
+  size: {
+    type: String,
+    enum: ['Small', 'Medium', 'Large'],
+    required: true
+  },
+  weight: String,
+  color: String,
+  image: String,
+  
+  // Owner Information
   owner: {
     name: String,
     email: String,
     phone: String,
     address: String
   },
-  medicalHistory: [{
-    date: Date,
-    diagnosis: String,
-    treatment: String,
-    veterinarian: String,
-    notes: String
-  }],
+  
+  // Medical Information
   vaccinations: [{
     name: String,
     date: Date,
@@ -54,16 +55,21 @@ const petSchema = new mongoose.Schema({
     dosage: String,
     frequency: String,
     startDate: Date,
-    endDate: Date,
+    endDate: Date
+  }],
+  medicalHistory: [{
+    date: Date,
+    diagnosis: String,
+    treatment: String,
+    veterinarian: String,
     notes: String
   }],
+  
+  // Appointments
   appointments: [{
-    date: Date,
+    date: String,
     time: String,
-    type: {
-      type: String,
-      enum: ['Checkup', 'Vaccination', 'Grooming', 'Emergency', 'Other']
-    },
+    type: String,
     veterinarian: String,
     notes: String,
     status: {
@@ -71,7 +77,60 @@ const petSchema = new mongoose.Schema({
       enum: ['Scheduled', 'Completed', 'Cancelled'],
       default: 'Scheduled'
     }
-  }]
+  }],
+
+  // Adoption-specific fields
+  availableForAdoption: {
+    type: Boolean,
+    default: false
+  },
+  adoptionFee: {
+    type: Number,
+    default: 0
+  },
+  adoptionStatus: {
+    type: String,
+    enum: ['available', 'pending', 'adopted'],
+    default: 'available'
+  },
+  location: {
+    type: String,
+    default: 'Shelter'
+  },
+  description: {
+    type: String,
+    default: ''
+  },
+  goodWith: [{
+    type: String,
+    enum: ['Kids', 'Dogs', 'Cats', 'Other Pets']
+  }],
+  specialNeeds: {
+    type: String,
+    default: 'None'
+  },
+  energyLevel: {
+    type: String,
+    enum: ['Very Low', 'Low', 'Medium', 'High', 'Very High'],
+    default: 'Medium'
+  },
+  trainingLevel: {
+    type: String,
+    enum: ['None', 'Basic', 'Intermediate', 'Advanced', 'Professional'],
+    default: 'None'
+  },
+  featured: {
+    type: Boolean,
+    default: false
+  },
+  vaccinated: {
+    type: Boolean,
+    default: false
+  },
+  neutered: {
+    type: Boolean,
+    default: false
+  }
 }, {
   timestamps: true
 });

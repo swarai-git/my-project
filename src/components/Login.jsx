@@ -1,4 +1,4 @@
-// src/components/Login.jsx
+// src/components/Login.jsx - Complete Fixed Version
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Lock, Mail, LogIn, AlertCircle, PawPrint } from 'lucide-react';
@@ -40,13 +40,9 @@ const Login = ({ onLoginSuccess }) => {
         throw new Error(data.error || 'Login failed');
       }
 
-      // Store token and user data
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-
-      // Call success callback
+      // Call success callback with FULL data object (includes token and user)
       if (onLoginSuccess) {
-        onLoginSuccess(data.user);
+        onLoginSuccess(data); // Pass entire data object
       }
 
       // Redirect to dashboard
@@ -80,7 +76,7 @@ const Login = ({ onLoginSuccess }) => {
             </div>
           )}
 
-          <div className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email Field */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -139,7 +135,7 @@ const Login = ({ onLoginSuccess }) => {
 
             {/* Login Button */}
             <button
-              onClick={handleSubmit}
+              type="submit"
               disabled={loading}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
             >
@@ -155,7 +151,7 @@ const Login = ({ onLoginSuccess }) => {
                 </>
               )}
             </button>
-          </div>
+          </form>
 
           {/* Sign Up Link */}
           <div className="mt-6 text-center">

@@ -1,7 +1,21 @@
 // src/components/AdoptionCenter.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, Search, Filter, PawPrint, MapPin, Calendar, Users } from 'lucide-react';
+import { 
+  Heart, 
+  Search, 
+  Filter, 
+  PawPrint, 
+  MapPin, 
+  Calendar, 
+  Users, 
+  Star,
+  Shield,
+  Clock,
+  TrendingUp,
+  RefreshCw,
+  AlertCircle
+} from 'lucide-react';
 
 const AdoptionCenter = () => {
   const [pets, setPets] = useState([]);
@@ -14,93 +28,63 @@ const AdoptionCenter = () => {
     size: ''
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [stats, setStats] = useState({
+    total: 0,
+    dogs: 0,
+    cats: 0,
+    adopted: 0
+  });
 
   const navigate = useNavigate();
-
-  // Sample adoption pets data
-  const sampleAdoptionPets = [
-    {
-      id: 1,
-      name: 'Max',
-      species: 'Dog',
-      breed: 'Golden Retriever',
-      age: '2 years',
-      gender: 'Male',
-      size: 'Large',
-      location: 'New York, NY',
-      description: 'Friendly and energetic golden retriever looking for an active family. Great with kids and other pets.',
-      image: '/api/placeholder/300/200',
-      available: true,
-      adoptionFee: 250,
-      vaccinated: true,
-      neutered: true,
-      goodWith: ['Kids', 'Dogs', 'Cats'],
-      specialNeeds: 'None'
-    },
-    {
-      id: 2,
-      name: 'Luna',
-      species: 'Cat',
-      breed: 'Domestic Shorthair',
-      age: '1 year',
-      gender: 'Female',
-      size: 'Small',
-      location: 'Brooklyn, NY',
-      description: 'Sweet and affectionate cat who loves cuddles and quiet evenings. Perfect for apartment living.',
-      image: '/api/placeholder/300/200',
-      available: true,
-      adoptionFee: 150,
-      vaccinated: true,
-      neutered: true,
-      goodWith: ['Kids', 'Cats'],
-      specialNeeds: 'None'
-    },
-    {
-      id: 3,
-      name: 'Buddy',
-      species: 'Dog',
-      breed: 'Beagle',
-      age: '4 years',
-      gender: 'Male',
-      size: 'Medium',
-      location: 'Queens, NY',
-      description: 'Gentle and calm beagle with lots of love to give. Great companion for seniors or quiet households.',
-      image: '/api/placeholder/300/200',
-      available: true,
-      adoptionFee: 200,
-      vaccinated: true,
-      neutered: true,
-      goodWith: ['Kids', 'Dogs'],
-      specialNeeds: 'Mild arthritis'
-    },
-    {
-      id: 4,
-      name: 'Bella',
-      species: 'Cat',
-      breed: 'Siamese',
-      age: '6 months',
-      gender: 'Female',
-      size: 'Small',
-      location: 'Manhattan, NY',
-      description: 'Playful and curious siamese kitten. Very intelligent and loves interactive toys.',
-      image: '/api/placeholder/300/200',
-      available: true,
-      adoptionFee: 175,
-      vaccinated: true,
-      neutered: false,
-      goodWith: ['Kids', 'Cats', 'Dogs'],
-      specialNeeds: 'None'
-    }
-  ];
+  const API_BASE_URL = 'http://localhost:5000/api';
 
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setPets(sampleAdoptionPets);
-      setFilteredPets(sampleAdoptionPets);
-      setLoading(false);
-    }, 1000);
+    fetchPets();
   }, []);
+
+  const fetchPets = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const queryParams = new URLSearchParams();
+      if (filters.species) queryParams.append('species', filters.species);
+      if (filters.age) queryParams.append('age', filters.age);
+      if (filters.size) queryParams.append('size', filters.size);
+      if (searchTerm) queryParams.append('search', searchTerm);
+
+      console.log('Fetching pets from:', `${API_BASE_URL}/adoption/available-pets?${queryParams}`);
+      
+      const response = await fetch(`${API_BASE_URL}/adoption/available-pets?${queryParams}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch pets: ${response.status}`);
+      }
+
+      const petsData = await response.json();
+      console.log('Pets data received:', petsData);
+      
+      setPets(petsData);
+      setFilteredPets(petsData);
+      
+      // Calculate stats
+      setStats({
+        total: petsData.length,
+        dogs: petsData.filter(pet => pet.species === 'Dog').length,
+        cats: petsData.filter(pet => pet.species === 'Cat').length,
+        adopted: petsData.filter(pet => !pet.availableForAdoption).length
+      });
+      
+    } catch (err) {
+      console.error('Error fetching pets:', err);
+      setError('Failed to load pets. Please try again later.');
+      setPets([]);
+      setFilteredPets([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     filterPets();
@@ -160,13 +144,52 @@ const AdoptionCenter = () => {
     });
   };
 
+  const getEnergyLevelColor = (level) => {
+    const colors = {
+      'Very High': 'from-red-500 to-orange-500',
+      'High': 'from-orange-500 to-yellow-500',
+      'Medium': 'from-yellow-500 to-green-500',
+      'Low': 'from-green-500 to-blue-500',
+      'Very Low': 'from-blue-500 to-purple-500'
+    };
+    return colors[level] || 'from-gray-500 to-slate-500';
+  };
+
+  // If no pets are available for adoption, show a helpful message
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-900 via-gray-900 to-blue-900 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-400 mx-auto"></div>
-            <p className="mt-4 text-green-300">Loading adoption center...</p>
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-gray-900 to-pink-900 p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto"></div>
+          <p className="mt-4 text-purple-300">Loading adoption center...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-gray-900 to-pink-900 p-6 flex items-center justify-center">
+        <div className="max-w-md w-full bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 text-center border border-purple-500/30">
+          <AlertCircle className="h-16 w-16 text-pink-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-white mb-4">Unable to Load Pets</h2>
+          <p className="text-purple-300 mb-2">{error}</p>
+          <p className="text-gray-400 text-sm mb-6">
+            Make sure your backend server is running on port 5000
+          </p>
+          <div className="space-y-3">
+            <button 
+              onClick={fetchPets}
+              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-2 rounded-lg font-semibold transition duration-200"
+            >
+              Try Again
+            </button>
+            <button 
+              onClick={() => navigate('/')}
+              className="w-full bg-gray-700 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-semibold transition duration-200"
+            >
+              Return to Dashboard
+            </button>
           </div>
         </div>
       </div>
@@ -174,21 +197,45 @@ const AdoptionCenter = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-900 via-gray-900 to-blue-900">
-      {/* Hero Section */}
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-gray-900 to-pink-900">
+      {/* Header Section */}
       <section className="relative overflow-hidden px-6 py-20 md:py-32">
-        <div className="absolute inset-0 bg-gradient-to-b from-green-600/20 to-transparent"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-purple-600/20 to-transparent"></div>
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="text-center space-y-6">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-green-600 to-blue-600 rounded-full mb-4">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full mb-4 shadow-2xl">
               <Heart className="h-10 w-10 text-white" />
             </div>
             <h1 className="text-5xl md:text-7xl font-extrabold text-white mb-4">
-              Find Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-400">New Best Friend</span>
+              Find Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">New Best Friend</span>
             </h1>
-            <p className="text-xl md:text-2xl text-green-300 max-w-2xl mx-auto">
-              Give a loving home to pets in need. Browse our available pets ready for adoption.
+            <p className="text-xl md:text-2xl text-purple-300 max-w-2xl mx-auto">
+              Give a loving home to pets in need. Browse our available pets ready for adoption and start your journey today.
             </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="px-6 pb-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-purple-500/30">
+              <div className="text-3xl font-bold text-white">{stats.total}</div>
+              <div className="text-purple-300 text-sm">Pets Available</div>
+            </div>
+            <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-blue-500/30">
+              <div className="text-3xl font-bold text-white">{stats.dogs}</div>
+              <div className="text-blue-300 text-sm">Dogs Waiting</div>
+            </div>
+            <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-pink-500/30">
+              <div className="text-3xl font-bold text-white">{stats.cats}</div>
+              <div className="text-pink-300 text-sm">Cats Waiting</div>
+            </div>
+            <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-green-500/30">
+              <div className="text-3xl font-bold text-white">{stats.adopted}</div>
+              <div className="text-green-300 text-sm">Recently Adopted</div>
+            </div>
           </div>
         </div>
       </section>
@@ -196,18 +243,18 @@ const AdoptionCenter = () => {
       {/* Search and Filters */}
       <section className="px-6 py-8">
         <div className="max-w-7xl mx-auto">
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-green-500/30">
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-purple-500/30">
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               {/* Search */}
               <div className="md:col-span-2">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-400 h-5 w-5" />
                   <input
                     type="text"
                     placeholder="Search by name, breed, or description..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-purple-500/30 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-300"
                   />
                 </div>
               </div>
@@ -217,7 +264,7 @@ const AdoptionCenter = () => {
                 <select
                   value={filters.species}
                   onChange={(e) => setFilters(prev => ({ ...prev, species: e.target.value }))}
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  className="w-full px-4 py-3 bg-gray-700 border border-purple-500/30 rounded-xl text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-300"
                 >
                   <option value="">All Species</option>
                   <option value="Dog">Dogs</option>
@@ -232,7 +279,7 @@ const AdoptionCenter = () => {
                 <select
                   value={filters.age}
                   onChange={(e) => setFilters(prev => ({ ...prev, age: e.target.value }))}
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  className="w-full px-4 py-3 bg-gray-700 border border-purple-500/30 rounded-xl text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-300"
                 >
                   <option value="">Any Age</option>
                   <option value="puppy">Puppy/Kitten</option>
@@ -245,7 +292,7 @@ const AdoptionCenter = () => {
               <div>
                 <button
                   onClick={clearFilters}
-                  className="w-full bg-gray-600 hover:bg-gray-700 text-white py-3 rounded-lg transition duration-200 font-semibold"
+                  className="w-full bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-xl transition-all duration-300 font-semibold hover:scale-105"
                 >
                   Clear Filters
                 </button>
@@ -257,7 +304,7 @@ const AdoptionCenter = () => {
               <select
                 value={filters.gender}
                 onChange={(e) => setFilters(prev => ({ ...prev, gender: e.target.value }))}
-                className="px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                className="px-4 py-3 bg-gray-700 border border-purple-500/30 rounded-xl text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-300"
               >
                 <option value="">Any Gender</option>
                 <option value="Male">Male</option>
@@ -267,7 +314,7 @@ const AdoptionCenter = () => {
               <select
                 value={filters.size}
                 onChange={(e) => setFilters(prev => ({ ...prev, size: e.target.value }))}
-                className="px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                className="px-4 py-3 bg-gray-700 border border-purple-500/30 rounded-xl text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-300"
               >
                 <option value="">Any Size</option>
                 <option value="Small">Small</option>
@@ -275,7 +322,7 @@ const AdoptionCenter = () => {
                 <option value="Large">Large</option>
               </select>
 
-              <div className="text-green-400 font-semibold flex items-center justify-center">
+              <div className="text-purple-400 font-semibold flex items-center justify-center bg-gray-700/50 rounded-xl p-3 border border-purple-500/30">
                 <Filter className="h-5 w-5 mr-2" />
                 {filteredPets.length} pets found
               </div>
@@ -288,18 +335,63 @@ const AdoptionCenter = () => {
       <section className="px-6 py-8 pb-32">
         <div className="max-w-7xl mx-auto">
           {filteredPets.length === 0 ? (
-            <div className="text-center py-12 bg-gray-800/50 rounded-2xl border border-green-500/30">
-              <PawPrint className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-2xl font-bold text-white mb-2">No pets found</h3>
-              <p className="text-gray-400">Try adjusting your search criteria</p>
+            <div className="text-center py-20 bg-gray-800/50 backdrop-blur-sm rounded-3xl border border-purple-500/30">
+              <PawPrint className="h-16 w-16 text-purple-400 mx-auto mb-4" />
+              <h3 className="text-2xl font-bold text-white mb-2">No pets available for adoption</h3>
+              <p className="text-purple-300 mb-6">
+                {pets.length === 0 
+                  ? "No pets are currently marked as available for adoption. Please check back later."
+                  : "No pets match your search criteria. Try adjusting your filters."
+                }
+              </p>
+              {pets.length === 0 && (
+                <div className="space-y-3">
+                  <p className="text-gray-400 text-sm">
+                    If you're an admin, make sure pets are marked as available for adoption.
+                  </p>
+                  <button 
+                    onClick={clearFilters}
+                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-3 rounded-xl font-semibold transition duration-200"
+                  >
+                    Clear All Filters
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredPets.map((pet) => (
-                <div key={pet.id} className="bg-gray-800/50 backdrop-blur-sm rounded-2xl overflow-hidden border border-green-500/30 hover:border-green-500 transition-all duration-300">
+                <div key={pet._id} className="group relative bg-gray-800/50 backdrop-blur-sm rounded-2xl overflow-hidden border border-purple-500/30 hover:border-purple-500 transition-all duration-500 hover:scale-105">
+                  {/* Featured Badge */}
+                  {pet.featured && (
+                    <div className="absolute top-4 left-4 z-10">
+                      <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-gray-900 text-xs font-bold px-3 py-1 rounded-full shadow-lg flex items-center gap-1">
+                        <Star className="h-3 w-3 fill-current" />
+                        <span>FEATURED</span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Pet Image */}
-                  <div className="h-48 bg-gradient-to-br from-green-600 to-blue-600 flex items-center justify-center">
-                    <PawPrint className="h-16 w-16 text-white opacity-50" />
+                  <div className="h-48 bg-gradient-to-br from-purple-600 to-pink-600 relative overflow-hidden">
+                    {pet.image ? (
+                      <img 
+                        src={pet.image} 
+                        alt={pet.name}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <PawPrint className="h-16 w-16 text-white opacity-50" />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 to-transparent"></div>
+                    <div className="absolute bottom-4 left-4">
+                      <div className="flex items-center gap-2 text-white">
+                        <PawPrint className="h-4 w-4" />
+                        <span className="font-semibold">{pet.species}</span>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Pet Info */}
@@ -307,57 +399,74 @@ const AdoptionCenter = () => {
                     <div className="flex justify-between items-start mb-3">
                       <div>
                         <h3 className="text-xl font-bold text-white">{pet.name}</h3>
-                        <p className="text-green-400">{pet.breed} • {pet.age}</p>
+                        <p className="text-purple-400">{pet.breed} • {pet.age}</p>
                       </div>
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                        pet.available ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        pet.availableForAdoption 
+                          ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                          : 'bg-red-500/20 text-red-400 border border-red-500/30'
                       }`}>
-                        {pet.available ? 'Available' : 'Adopted'}
+                        {pet.availableForAdoption ? 'Available' : 'Adopted'}
                       </span>
                     </div>
 
                     <div className="space-y-2 mb-4">
                       <div className="flex items-center text-gray-300">
-                        <MapPin className="h-4 w-4 mr-2" />
-                        {pet.location}
+                        <MapPin className="h-4 w-4 mr-2 text-purple-400" />
+                        {pet.location || 'Shelter'}
                       </div>
                       <div className="flex items-center text-gray-300">
-                        <Users className="h-4 w-4 mr-2" />
-                        Good with: {pet.goodWith.join(', ')}
+                        <Users className="h-4 w-4 mr-2 text-blue-400" />
+                        Good with: {pet.goodWith?.join(', ') || 'Not specified'}
+                      </div>
+                      <div className="flex items-center text-gray-300">
+                        <Clock className="h-4 w-4 mr-2 text-pink-400" />
+                        Energy: <span className={`ml-1 px-2 py-1 rounded-full text-xs bg-gradient-to-r ${getEnergyLevelColor(pet.energyLevel)} text-white`}>{pet.energyLevel}</span>
                       </div>
                     </div>
 
                     <p className="text-gray-400 text-sm mb-4 line-clamp-2">{pet.description}</p>
 
-                    {/* Pet Details */}
-                    <div className="grid grid-cols-2 gap-2 mb-4 text-sm">
-                      <div className="text-gray-300">
-                        <span className="text-green-400">Vaccinated:</span> {pet.vaccinated ? 'Yes' : 'No'}
+                    {/* Pet Details Grid */}
+                    <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
+                      <div className="text-gray-300 flex items-center gap-1">
+                        <Shield className="h-3 w-3 text-green-400" />
+                        <span>Vaccinated: {pet.vaccinated ? 'Yes' : 'No'}</span>
                       </div>
-                      <div className="text-gray-300">
-                        <span className="text-green-400">Neutered:</span> {pet.neutered ? 'Yes' : 'No'}
+                      <div className="text-gray-300 flex items-center gap-1">
+                        <span className="w-3 h-3 bg-blue-400 rounded-full"></span>
+                        <span>Neutered: {pet.neutered ? 'Yes' : 'No'}</span>
                       </div>
-                      <div className="text-gray-300">
-                        <span className="text-green-400">Adoption Fee:</span> ${pet.adoptionFee}
+                      <div className="text-gray-300 col-span-2 flex items-center gap-1">
+                        <TrendingUp className="h-3 w-3 text-purple-400" />
+                        <span>Training: {pet.trainingLevel}</span>
                       </div>
                       {pet.specialNeeds !== 'None' && (
-                        <div className="text-gray-300 col-span-2">
-                          <span className="text-yellow-400">Special Needs:</span> {pet.specialNeeds}
+                        <div className="text-gray-300 col-span-2 flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3 text-yellow-400" />
+                          <span>Special Needs: {pet.specialNeeds}</span>
                         </div>
                       )}
                     </div>
 
+                    {/* Price and Action */}
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="text-lg font-bold text-white">
+                        Adoption Fee: <span className="text-purple-400">${pet.adoptionFee || 0}</span>
+                      </div>
+                    </div>
+
                     {/* Action Button */}
                     <button
-                      onClick={() => handleAdoptClick(pet.id)}
-                      disabled={!pet.available}
-                      className={`w-full py-3 rounded-lg font-semibold transition duration-200 ${
-                        pet.available
-                          ? 'bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white'
-                          : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                      onClick={() => handleAdoptClick(pet._id)}
+                      disabled={!pet.availableForAdoption}
+                      className={`w-full py-3 rounded-xl font-bold transition-all duration-300 hover:scale-105 ${
+                        pet.availableForAdoption
+                          ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg hover:shadow-xl'
+                          : 'bg-gray-700 text-gray-400 cursor-not-allowed'
                       }`}
                     >
-                      {pet.available ? 'Start Adoption Process' : 'Already Adopted'}
+                      {pet.availableForAdoption ? 'Start Adoption Process' : 'Already Adopted'}
                     </button>
                   </div>
                 </div>

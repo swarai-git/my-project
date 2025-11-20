@@ -50,10 +50,12 @@ mongoose.connection.on('error', (err) => {
 // Import routes
 import petRoutes from './routes/petRoutes.js';
 import authRoutes from './routes/authRoutes.js';
+import adoptionRoutes from './routes/adoptionRoutes.js';
 
 // Routes
-app.use('/api/auth', authRoutes);  // Authentication routes
-app.use('/api/pets', petRoutes);   // Pet routes
+app.use('/api/auth', authRoutes);
+app.use('/api/pets', petRoutes);
+app.use('/api/adoption', adoptionRoutes);
 
 // Health check
 app.get('/', (req, res) => {
@@ -63,118 +65,120 @@ app.get('/', (req, res) => {
     mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
   });
 });
+// Add this to your backend/server.js after your other routes
 
-// Test route
-app.get('/api/test', (req, res) => {
-  res.json({ 
-    message: 'API is working!',
-    timestamp: new Date().toISOString(),
-    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
-  });
+// Enable adoption for all pets (one-time fix)
+app.put('/api/pets/enable-adoption', async (req, res) => {
+  try {
+    const Pet = (await import('./models/Pet.js')).default;
+    const result = await Pet.updateMany({}, { 
+      availableForAdoption: true,
+      adoptionStatus: 'available'
+    });
+    res.json({ 
+      message: 'All pets are now available for adoption!',
+      modifiedCount: result.modifiedCount
+    });
+  } catch (error) {
+    console.error('Error enabling adoption:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
-// Add sample data route
+// Updated seed route with adoption pets
 app.get('/api/seed', async (req, res) => {
   try {
     const Pet = (await import('./models/Pet.js')).default;
+    const Adoption = (await import('./models/Adoption.js')).default;
     
     console.log('🌱 Seeding sample data...');
     
     // Clear existing data
     await Pet.deleteMany({});
+    await Adoption.deleteMany({});
     console.log('✅ Cleared existing data');
     
-    // Add sample pets
+    // Add sample adoption pets
     const samplePets = [
+      {
+        name: "Max",
+        species: "Dog",
+        breed: "Golden Retriever",
+        age: "2 years",
+        gender: "Male",
+        size: "Large",
+        location: "New York, NY",
+        description: "Friendly and energetic golden retriever looking for an active family. Great with kids and other pets. Loves playing fetch and going for long walks.",
+        image: "https://images.unsplash.com/photo-1552053831-71594a27632d?w=400&h=300&fit=crop",
+        availableForAdoption: true,
+        adoptionFee: 250,
+        vaccinated: true,
+        neutered: true,
+        goodWith: ["Kids", "Dogs", "Cats"],
+        specialNeeds: "None",
+        energyLevel: "High",
+        trainingLevel: "Basic",
+        featured: true
+      },
+      {
+        name: "Luna",
+        species: "Cat",
+        breed: "Domestic Shorthair",
+        age: "1 year",
+        gender: "Female",
+        size: "Small",
+        location: "Brooklyn, NY",
+        description: "Sweet and affectionate cat who loves cuddles and quiet evenings. Perfect for apartment living. Enjoys watching birds from the window.",
+        image: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=400&h=300&fit=crop",
+        availableForAdoption: true,
+        adoptionFee: 150,
+        vaccinated: true,
+        neutered: true,
+        goodWith: ["Kids", "Cats"],
+        specialNeeds: "None",
+        energyLevel: "Medium",
+        trainingLevel: "Litter Trained",
+        featured: false
+      },
       {
         name: "Buddy",
         species: "Dog",
-        breed: "Golden Retriever",
-        age: 3,
-        weight: 25,
+        breed: "Beagle Mix",
+        age: "4 years",
         gender: "Male",
-        color: "Golden",
-        owner: {
-          name: "John Doe",
-          email: "john@example.com",
-          phone: "+1234567890",
-          address: "123 Main St, City, State"
-        },
-        appointments: [
-          {
-            date: "2024-12-15",
-            time: "10:00",
-            type: "Checkup",
-            veterinarian: "Dr. Smith",
-            notes: "Annual checkup",
-            status: "Scheduled"
-          }
-        ],
-        vaccinations: [
-          {
-            name: "Rabies",
-            date: "2024-01-15",
-            nextDue: "2025-01-15",
-            veterinarian: "Dr. Johnson"
-          }
-        ],
-        medications: [
-          {
-            name: "Heartworm Prevention",
-            dosage: "1 tablet",
-            frequency: "Monthly",
-            startDate: "2024-01-01"
-          }
-        ],
-        medicalHistory: [
-          {
-            date: "2024-06-01",
-            diagnosis: "Ear infection",
-            treatment: "Antibiotics",
-            veterinarian: "Dr. Wilson",
-            notes: "Recovered well"
-          }
-        ]
+        size: "Medium",
+        location: "Queens, NY",
+        description: "Gentle and calm beagle with lots of love to give. Great companion for seniors or quiet households. Enjoys leisurely walks and naps.",
+        image: "https://images.unsplash.com/photo-1517849845537-4d257902454a?w=400&h=300&fit=crop",
+        availableForAdoption: true,
+        adoptionFee: 200,
+        vaccinated: true,
+        neutered: true,
+        goodWith: ["Kids", "Dogs"],
+        specialNeeds: "Mild arthritis - requires joint supplements",
+        energyLevel: "Low",
+        trainingLevel: "Advanced",
+        featured: true
       },
       {
-        name: "Whiskers",
+        name: "Bella",
         species: "Cat",
         breed: "Siamese",
-        age: 2,
-        weight: 4,
+        age: "6 months",
         gender: "Female",
-        color: "Cream",
-        owner: {
-          name: "Jane Smith",
-          email: "jane@example.com",
-          phone: "+0987654321",
-          address: "456 Oak Ave, Town, State"
-        },
-        appointments: [
-          {
-            date: "2024-11-20",
-            time: "14:30",
-            type: "Vaccination",
-            veterinarian: "Dr. Brown",
-            status: "Scheduled"
-          }
-        ],
-        vaccinations: [
-          {
-            name: "FVRCP",
-            date: "2024-02-10",
-            nextDue: "2025-02-10"
-          }
-        ],
-        medications: [
-          {
-            name: "Flea Treatment",
-            dosage: "0.5 ml",
-            frequency: "Monthly",
-            startDate: "2024-03-01"
-          }
-        ],
-        medicalHistory: []
+        size: "Small",
+        location: "Manhattan, NY",
+        description: "Playful and curious siamese kitten. Very intelligent and loves interactive toys. Would do best in a home with another young cat.",
+        image: "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?w=400&h=300&fit=crop",
+        availableForAdoption: true,
+        adoptionFee: 175,
+        vaccinated: true,
+        neutered: false,
+        goodWith: ["Kids", "Cats", "Dogs"],
+        specialNeeds: "None",
+        energyLevel: "High",
+        trainingLevel: "Litter Trained",
+        featured: false
       }
     ];
     
@@ -219,5 +223,6 @@ mongoose.connection.once('open', () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
     console.log(`📊 MongoDB: Connected to database`);
     console.log(`🔐 Auth routes: /api/auth/login, /api/auth/register`);
+    console.log(`🐾 Adoption routes: /api/adoption/applications, /api/adoption/available-pets`);
   });
 });

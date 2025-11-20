@@ -1,4 +1,4 @@
-// src/App.jsx - Updated with Adoption Features
+// src/App.jsx - Complete Fixed Version
 import { useState, useEffect, createContext, useContext } from "react";
 import {
   BrowserRouter as Router,
@@ -55,17 +55,49 @@ function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const storedUser = localStorage.getItem("user");
+    try {
+      const token = localStorage.getItem("token");
+      const storedUser = localStorage.getItem("user");
 
-    if (token && storedUser) {
-      setUser(JSON.parse(storedUser));
+      // Check if both token AND valid user data exist
+      if (token && storedUser && storedUser !== "undefined") {
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+        } catch (parseError) {
+          console.error("Error parsing stored user:", parseError);
+          // Clear invalid data
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+        }
+      }
+    } catch (error) {
+      console.error("Error loading user from localStorage:", error);
+      // Clear potentially corrupted data
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   const login = (userData) => {
-    setUser(userData);
+    try {
+      // Ensure userData has the expected structure
+      if (userData && userData.token && userData.user) {
+        localStorage.setItem("token", userData.token);
+        localStorage.setItem("user", JSON.stringify(userData.user));
+        setUser(userData.user);
+      } else if (userData && userData.user) {
+        // Handle case where token might be separate
+        localStorage.setItem("user", JSON.stringify(userData.user));
+        setUser(userData.user);
+      } else {
+        console.error("Invalid userData structure:", userData);
+      }
+    } catch (error) {
+      console.error("Error during login:", error);
+    }
   };
 
   const logout = () => {
@@ -96,18 +128,23 @@ function ThemeProvider({ children }) {
   const [theme, setTheme] = useState("dark");
 
   const toggleTheme = () => {
-    setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
+    const newTheme = theme === "light" ? "dark" : "light";
+    setTheme(newTheme);
+    localStorage.setItem("theme", newTheme);
   };
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme") || "dark";
+    setTheme(savedTheme);
+  }, []);
 
   useEffect(() => {
     if (theme === "dark") {
       document.documentElement.classList.add("dark");
-      document.body.classList.add("bg-gray-900", "text-white");
-      document.body.classList.remove("bg-gray-100", "text-gray-900");
+      document.body.className = "bg-gray-900 text-white transition-colors duration-300";
     } else {
       document.documentElement.classList.remove("dark");
-      document.body.classList.add("bg-gray-100", "text-gray-900");
-      document.body.classList.remove("bg-gray-900", "text-white");
+      document.body.className = "bg-gray-100 text-gray-900 transition-colors duration-300";
     }
   }, [theme]);
 
@@ -124,10 +161,10 @@ function ProtectedRoute({ children }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-gray-900 to-pink-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-gray-400">Loading...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto"></div>
+          <p className="mt-4 text-purple-300">Loading...</p>
         </div>
       </div>
     );
@@ -146,7 +183,7 @@ function AdminRoute({ children }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-gray-900 to-pink-900 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto"></div>
           <p className="mt-4 text-purple-400">Loading...</p>
@@ -170,7 +207,7 @@ function AdminRoute({ children }) {
           </p>
           <button
             onClick={() => window.history.back()}
-            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-2 rounded-lg font-semibold"
+            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-2 rounded-lg font-semibold transition duration-200"
           >
             Go Back
           </button>
@@ -224,18 +261,18 @@ function Navigation() {
           if (isMobile) setIsOpen(false);
         }}
         className={`
-          w-full text-left inline-flex items-center px-3 py-2 text-sm font-medium transition-colors duration-200 
+          w-full text-left inline-flex items-center px-3 py-2 text-sm font-medium transition-all duration-200 
           ${
             isMobile
-              ? `block rounded-md mt-1 ${
+              ? `block rounded-lg mt-1 ${
                   isActive(item.path)
-                    ? "bg-blue-700 text-white"
-                    : "text-gray-300 hover:bg-gray-700"
+                    ? "bg-purple-600 text-white shadow-lg"
+                    : "text-gray-300 hover:bg-gray-700 hover:text-white"
                 }`
-              : `${
+              : `rounded-lg px-4 py-2 ${
                   isActive(item.path)
-                    ? "text-blue-400 border-b-2 border-blue-400"
-                    : "text-gray-400 hover:text-gray-200 hover:border-b-2 hover:border-gray-500"
+                    ? "bg-purple-600 text-white shadow-lg"
+                    : "text-gray-300 hover:bg-gray-700 hover:text-white"
                 }`
           }
         `}
@@ -247,29 +284,34 @@ function Navigation() {
   };
 
   return (
-    <nav className="bg-gray-800 shadow-lg border-b border-gray-700 sticky top-0 z-40">
+    <nav className="bg-gray-800/80 backdrop-blur-sm shadow-xl border-b border-gray-700 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
+          {/* Logo */}
           <div className="flex items-center">
             <button
               onClick={() => navigate("/")}
-              className="flex items-center space-x-2 text-xl font-extrabold text-blue-400 hover:text-blue-300 transition-colors"
+              className="flex items-center space-x-3 text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 hover:from-purple-300 hover:to-pink-300 transition-all duration-300"
             >
-              <PawPrint className="h-7 w-7" />
-              <h1>PetCare Pro</h1>
+              <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-2 rounded-xl">
+                <PawPrint className="h-6 w-6 text-white" />
+              </div>
+              <span>PetCare Pro</span>
             </button>
           </div>
 
-          <div className="hidden sm:flex sm:space-x-4 lg:space-x-8 items-center">
+          {/* Desktop Navigation */}
+          <div className="hidden sm:flex sm:space-x-1 lg:space-x-2 items-center">
             {navigation.map((item) => (
               <NavButton key={item.path} item={item} />
             ))}
           </div>
 
-          <div className="hidden sm:flex items-center space-x-4">
+          {/* User Menu */}
+          <div className="hidden sm:flex items-center space-x-3">
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-full text-gray-400 hover:text-gray-200 hover:bg-gray-700 transition-colors"
+              className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-all duration-200"
             >
               {theme === "dark" ? (
                 <Sun className="h-5 w-5" />
@@ -278,11 +320,11 @@ function Navigation() {
               )}
             </button>
 
-            <button className="p-2 rounded-full text-gray-400 hover:text-gray-200 hover:bg-gray-700 transition-colors">
+            <button className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-all duration-200">
               <Settings className="h-5 w-5" />
             </button>
 
-            <div className="flex items-center space-x-2 p-2 rounded-full bg-blue-600 text-white font-semibold text-sm">
+            <div className="flex items-center space-x-2 p-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold text-sm">
               <UserCircle className="h-5 w-5" />
               <span>{user?.username || "User"}</span>
               {user?.role === "admin" && (
@@ -292,16 +334,17 @@ function Navigation() {
 
             <button
               onClick={handleLogout}
-              className="p-2 rounded-full text-red-400 hover:text-red-300 hover:bg-red-900 transition-colors"
+              className="p-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-900/50 transition-all duration-200"
             >
               <LogOut className="h-5 w-5" />
             </button>
           </div>
 
-          <div className="-mr-2 flex items-center sm:hidden">
+          {/* Mobile menu button */}
+          <div className="flex items-center sm:hidden">
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="bg-gray-700 inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-100 hover:bg-gray-600"
+              className="bg-gray-700 inline-flex items-center justify-center p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-600 transition-all duration-200"
             >
               {!isOpen ? (
                 <Menu className="h-6 w-6" />
@@ -313,15 +356,19 @@ function Navigation() {
         </div>
       </div>
 
+      {/* Mobile Navigation */}
       {isOpen && (
-        <div className="sm:hidden border-t border-gray-700 pt-2 pb-3 px-2">
-          {navigation.map((item) => (
-            <NavButton key={item.path} item={item} isMobile={true} />
-          ))}
-          <div className="border-t border-gray-700 mt-2 pt-2">
+        <div className="sm:hidden bg-gray-800/95 backdrop-blur-sm border-t border-gray-700 py-2 px-4">
+          <div className="space-y-1">
+            {navigation.map((item) => (
+              <NavButton key={item.path} item={item} isMobile={true} />
+            ))}
+          </div>
+          
+          <div className="border-t border-gray-700 mt-2 pt-2 space-y-1">
             <button
               onClick={toggleTheme}
-              className="w-full text-left px-3 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 rounded-md flex items-center"
+              className="w-full text-left px-3 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg flex items-center transition-all duration-200"
             >
               {theme === "dark" ? (
                 <Sun className="h-4 w-4 mr-2" />
@@ -330,11 +377,16 @@ function Navigation() {
               )}
               <span>Switch to {theme === "dark" ? "Light" : "Dark"} Mode</span>
             </button>
+            <button className="w-full text-left px-3 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg flex items-center transition-all duration-200">
+              <Settings className="h-4 w-4 mr-2" />
+              <span>Settings</span>
+            </button>
             <button
               onClick={handleLogout}
-              className="w-full text-left px-3 py-2 text-sm font-medium text-red-400 hover:bg-red-900 rounded-md mt-1 flex items-center"
+              className="w-full text-left px-3 py-2 text-sm font-medium text-red-400 hover:bg-red-900/50 hover:text-red-300 rounded-lg flex items-center transition-all duration-200"
             >
-              <LogOut className="h-4 w-4 mr-2" /> <span>Log Out</span>
+              <LogOut className="h-4 w-4 mr-2" /> 
+              <span>Log Out</span>
             </button>
           </div>
         </div>
@@ -358,27 +410,28 @@ function NotFound() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-6 text-white">
-      <div className="text-center bg-gray-800 p-10 rounded-2xl shadow-xl border border-gray-700">
-        <AlertTriangle className="h-16 w-16 mx-auto mb-4 text-red-500" />
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-gray-900 to-pink-900 flex items-center justify-center p-6">
+      <div className="text-center bg-gray-800/50 backdrop-blur-sm rounded-2xl p-10 border border-purple-500/30 shadow-2xl">
+        <AlertTriangle className="h-16 w-16 mx-auto mb-4 text-yellow-400" />
         <h1 className="text-4xl font-bold text-white mb-4">
           404 Page Not Found
         </h1>
-        <p className="text-gray-400 mb-8 max-w-md">
-          The page you're looking for doesn't exist.
+        <p className="text-purple-300 mb-8 max-w-md text-lg">
+          The page you're looking for doesn't exist or has been moved.
         </p>
-        <div className="space-x-4">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <button
             onClick={() => navigate(-1)}
-            className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg font-semibold inline-flex items-center space-x-2"
+            className="bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 inline-flex items-center justify-center space-x-2"
           >
-            <ChevronLeft className="h-4 w-4" /> <span>Go Back</span>
+            <ChevronLeft className="h-4 w-4" /> 
+            <span>Go Back</span>
           </button>
           <button
             onClick={() => navigate("/")}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold"
+            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105"
           >
-            Go Home
+            Go to Dashboard
           </button>
         </div>
       </div>
@@ -391,32 +444,50 @@ function AppContent() {
   const { theme } = useContext(ThemeContext);
   const { user, login } = useAuth();
 
+  // Global error handler
+  useEffect(() => {
+    const handleError = (event) => {
+      console.error('Global error:', event.error);
+      setError('An unexpected error occurred. Please refresh the page.');
+    };
+
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
+
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-900 p-6 flex items-center justify-center text-white">
-        <div className="text-center bg-gray-800 p-8 rounded-xl shadow-lg border border-red-700">
-          <div className="text-6xl mb-4 text-red-500">🚨</div>
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-gray-900 to-pink-900 p-6 flex items-center justify-center">
+        <div className="text-center bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 border border-red-500/30 max-w-md">
+          <div className="text-6xl mb-4">🚨</div>
           <h2 className="text-2xl font-bold text-white mb-4">
             Application Error
           </h2>
-          <p className="text-gray-400 mb-4">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold"
-          >
-            Reload App
-          </button>
+          <p className="text-purple-300 mb-6">{error}</p>
+          <div className="space-y-3">
+            <button
+              onClick={() => window.location.reload()}
+              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300"
+            >
+              Reload App
+            </button>
+            <button
+              onClick={() => setError(null)}
+              className="w-full bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300"
+            >
+              Try Again
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div
-      className={`min-h-screen ${
-        theme === "dark" ? "bg-gray-900" : "bg-gray-100"
-      } transition-colors duration-300`}
-    >
+    <div className={theme === "dark" 
+      ? "min-h-screen bg-gradient-to-br from-purple-900 via-gray-900 to-pink-900 transition-all duration-300" 
+      : "min-h-screen bg-gradient-to-br from-blue-50 via-gray-100 to-pink-50 transition-all duration-300"
+    }>
       <Routes>
         {/* Public Routes */}
         <Route
@@ -531,14 +602,6 @@ function AppContent() {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/pets/:id/timeline"
-          element={
-            <ProtectedRoute>
-              <PetHealthTimeline />
-            </ProtectedRoute>
-          }
-        />
 
         {/* Admin Only Routes */}
         <Route
@@ -551,6 +614,7 @@ function AppContent() {
           }
         />
 
+        {/* 404 Route */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </div>
